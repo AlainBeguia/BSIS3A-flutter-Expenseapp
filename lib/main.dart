@@ -22,6 +22,22 @@ class MyApp extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
+//  EXPENSE MODEL
+// ─────────────────────────────────────────────
+
+class Expense {
+  final String id;
+  String title;
+  double amount;
+
+  Expense({
+    required this.id,
+    required this.title,
+    required this.amount,
+  });
+}
+
+// ─────────────────────────────────────────────
 //  SCREEN 1: ExpensesHomePage
 // ─────────────────────────────────────────────
 
@@ -33,23 +49,34 @@ class ExpensesHomePage extends StatefulWidget {
 }
 
 class _ExpensesHomePageState extends State<ExpensesHomePage> {
-  final List<String> _expenses = [];
+  // Dummy initial items
+  final List<Expense> _expenses = [
+    Expense(id: '1', title: 'Groceries', amount: 850.00),
+    Expense(id: '2', title: 'Transport', amount: 120.00),
+    Expense(id: '3', title: 'Dinner', amount: 450.00),
+  ];
 
+  double get _totalAmount =>
+      _expenses.fold(0.0, (sum, e) => sum + e.amount);
+
+  // ── NAVIGATE TO ADD ──
   void _goToAddExpense() async {
-    final title = await Navigator.push(
+    final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const AddExpensePage()),
+      MaterialPageRoute(
+        builder: (context) => const AddEditExpensePage(),
+      ),
     );
 
-    if (title != null && title is String) {
+    if (result != null && result is Expense) {
       setState(() {
-        _expenses.add(title);
+        _expenses.add(result);
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Added: $title'),
+            content: Text('Added: ${result.title}'),
             backgroundColor: Colors.indigo,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 3),
@@ -59,6 +86,37 @@ class _ExpensesHomePageState extends State<ExpensesHomePage> {
     }
   }
 
+  // ── NAVIGATE TO EDIT ──
+  void _goToEditExpense(int index) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddEditExpensePage(
+          expenseToEdit: _expenses[index],
+        ),
+      ),
+    );
+
+    if (result != null && result is Expense) {
+      setState(() {
+        _expenses[index].title = result.title;
+        _expenses[index].amount = result.amount;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Updated: ${result.title}'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  // ── DELETE ──
   void _deleteExpense(int index) {
     setState(() {
       _expenses.removeAt(index);
@@ -69,7 +127,8 @@ class _ExpensesHomePageState extends State<ExpensesHomePage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: const Row(
           children: [
             Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
@@ -78,7 +137,7 @@ class _ExpensesHomePageState extends State<ExpensesHomePage> {
           ],
         ),
         content: Text(
-          'Are you sure you want to delete "${_expenses[index]}"?',
+          'Are you sure you want to delete "${_expenses[index].title}"?',
         ),
         actions: [
           TextButton(
@@ -113,7 +172,7 @@ class _ExpensesHomePageState extends State<ExpensesHomePage> {
           'Expense Tracker',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.indigo,
+        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
         foregroundColor: Colors.white,
         elevation: 2,
         actions: [
@@ -145,7 +204,7 @@ class _ExpensesHomePageState extends State<ExpensesHomePage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Tap "+ Add" to record your first expense.',
+                    'Tap "Add" to record your first expense.',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey.shade500,
@@ -156,55 +215,84 @@ class _ExpensesHomePageState extends State<ExpensesHomePage> {
             )
           : Column(
               children: [
-                // Summary Card
+                // ── Summary Card ──
                 Container(
                   width: double.infinity,
                   margin: const EdgeInsets.all(16),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 18),
                   decoration: BoxDecoration(
                     color: Colors.indigo,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Total Expenses',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Total Expenses',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${_expenses.length} item${_expenses.length == 1 ? '' : 's'}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${_expenses.length} item${_expenses.length == 1 ? '' : 's'}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Text(
+                            'Total Amount',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '₱${_totalAmount.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
 
-                // Expense List
+                // ── Expense List ──
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: _expenses.length,
                     itemBuilder: (context, index) {
+                      final expense = _expenses[index];
                       return Card(
                         margin: const EdgeInsets.only(bottom: 10),
                         elevation: 1,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
-                            vertical: 8,
+                            vertical: 10,
                           ),
+                          // Number avatar
                           leading: CircleAvatar(
                             backgroundColor: Colors.indigo.shade100,
                             child: Text(
@@ -215,20 +303,45 @@ class _ExpensesHomePageState extends State<ExpensesHomePage> {
                               ),
                             ),
                           ),
+                          // Title + amount
                           title: Text(
-                            _expenses[index],
+                            expense.title,
                             style: const TextStyle(
                               fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '₱${expense.amount.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.indigo.shade400,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          trailing: IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.redAccent,
-                            ),
-                            tooltip: 'Delete',
-                            onPressed: () => _confirmDelete(index),
+                          // Edit + Delete buttons
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Edit button
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit_outlined,
+                                  color: Colors.indigo,
+                                ),
+                                tooltip: 'Edit',
+                                onPressed: () => _goToEditExpense(index),
+                              ),
+                              // Delete button
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.redAccent,
+                                ),
+                                tooltip: 'Delete',
+                                onPressed: () => _confirmDelete(index),
+                              ),
+                            ],
                           ),
                         ),
                       );
@@ -241,10 +354,10 @@ class _ExpensesHomePageState extends State<ExpensesHomePage> {
         onPressed: _goToAddExpense,
         icon: const Icon(Icons.add),
         label: const Text(
-          '+ Add',
+          'Added Expenses',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.indigo,
+        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
         foregroundColor: Colors.white,
       ),
     );
@@ -252,60 +365,95 @@ class _ExpensesHomePageState extends State<ExpensesHomePage> {
 }
 
 // ─────────────────────────────────────────────
-//  SCREEN 2: AddExpensePage
+//  SCREEN 2: AddEditExpensePage (Add + Edit)
 // ─────────────────────────────────────────────
 
-class AddExpensePage extends StatefulWidget {
-  const AddExpensePage({super.key});
+class AddEditExpensePage extends StatefulWidget {
+  final Expense? expenseToEdit;
+
+  const AddEditExpensePage({super.key, this.expenseToEdit});
 
   @override
-  State<AddExpensePage> createState() => _AddExpensePageState();
+  State<AddEditExpensePage> createState() => _AddEditExpensePageState();
 }
 
-class _AddExpensePageState extends State<AddExpensePage> {
+class _AddEditExpensePageState extends State<AddEditExpensePage> {
   final TextEditingController _titleController = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
-  String? _errorMessage;
+  final TextEditingController _amountController = TextEditingController();
+  final FocusNode _titleFocus = FocusNode();
+
+  String? _titleError;
+  String? _amountError;
   bool _isSaving = false;
+
+  bool get _isEditMode => widget.expenseToEdit != null;
 
   @override
   void initState() {
     super.initState();
+
+    // Pre-fill fields if editing
+    if (_isEditMode) {
+      _titleController.text = widget.expenseToEdit!.title;
+      _amountController.text =
+          widget.expenseToEdit!.amount.toStringAsFixed(2);
+    }
+
     Future.delayed(const Duration(milliseconds: 300), () {
-      _focusNode.requestFocus();
+      _titleFocus.requestFocus();
     });
   }
 
   @override
   void dispose() {
     _titleController.dispose();
-    _focusNode.dispose();
+    _amountController.dispose();
+    _titleFocus.dispose();
     super.dispose();
   }
 
+  // ── VALIDATION & SAVE ──
   void _saveExpense() {
     final title = _titleController.text.trim();
+    final amountText = _amountController.text.trim();
+    final amount = double.tryParse(amountText);
 
+    bool hasError = false;
+
+    // Validate title
     if (title.isEmpty) {
-      setState(() {
-        _errorMessage = 'Expense title cannot be empty.';
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('⚠️ Please enter an expense title.'),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
+      setState(() => _titleError = 'Title cannot be empty.');
+      hasError = true;
+    } else {
+      setState(() => _titleError = null);
     }
+
+    // Validate amount
+    if (amountText.isEmpty) {
+      setState(() => _amountError = 'Amount cannot be empty.');
+      hasError = true;
+    } else if (amount == null || amount <= 0) {
+      setState(() => _amountError = 'Enter a valid amount greater than 0.');
+      hasError = true;
+    } else {
+      setState(() => _amountError = null);
+    }
+
+    if (hasError) return;
 
     setState(() => _isSaving = true);
 
+    // Build result Expense object
+    final result = Expense(
+      id: _isEditMode
+          ? widget.expenseToEdit!.id
+          : DateTime.now().millisecondsSinceEpoch.toString(),
+      title: title,
+      amount: amount!,
+    );
+
     Future.delayed(const Duration(milliseconds: 200), () {
-      Navigator.pop(context, title);
+      Navigator.pop(context, result);
     });
   }
 
@@ -314,9 +462,9 @@ class _AddExpensePageState extends State<AddExpensePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text(
-          'Add Expense',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          _isEditMode ? 'Edit Expense' : 'Add Expense',
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
@@ -329,9 +477,9 @@ class _AddExpensePageState extends State<AddExpensePage> {
           children: [
             const SizedBox(height: 20),
 
-            // Info card
+            // ── Info Banner ──
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: Colors.indigo.shade50,
                 borderRadius: BorderRadius.circular(12),
@@ -339,13 +487,21 @@ class _AddExpensePageState extends State<AddExpensePage> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline,
-                      color: Colors.indigo.shade400, size: 20),
+                  Icon(
+                    _isEditMode
+                        ? Icons.edit_note_outlined
+                        : Icons.info_outline,
+                    color: Colors.indigo.shade400,
+                    size: 20,
+                  ),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Enter the name of your expense below and tap Save.',
-                      style: TextStyle(color: Colors.indigo, fontSize: 13),
+                      _isEditMode
+                          ? 'Edit the fields below and tap Save to update.'
+                          : 'Fill in the details below and tap Save.',
+                      style: TextStyle(
+                          color: Colors.indigo.shade700, fontSize: 13),
                     ),
                   ),
                 ],
@@ -354,7 +510,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
 
             const SizedBox(height: 28),
 
-            // Label
+            // ── Title Field ──
             const Text(
               'Expense Title',
               style: TextStyle(
@@ -364,14 +520,12 @@ class _AddExpensePageState extends State<AddExpensePage> {
               ),
             ),
             const SizedBox(height: 8),
-
-            // TextField
             TextField(
               controller: _titleController,
-              focusNode: _focusNode,
+              focusNode: _titleFocus,
               decoration: InputDecoration(
                 hintText: 'e.g. Groceries, Transport, Dinner...',
-                errorText: _errorMessage,
+                errorText: _titleError,
                 filled: true,
                 fillColor: Colors.white,
                 prefixIcon:
@@ -390,19 +544,75 @@ class _AddExpensePageState extends State<AddExpensePage> {
                   borderSide:
                       const BorderSide(color: Colors.redAccent, width: 2),
                 ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: Colors.redAccent, width: 2),
+                ),
               ),
               onChanged: (_) {
-                if (_errorMessage != null) {
-                  setState(() => _errorMessage = null);
+                if (_titleError != null) {
+                  setState(() => _titleError = null);
+                }
+              },
+              textInputAction: TextInputAction.next,
+            ),
+
+            const SizedBox(height: 20),
+
+            // ── Amount Field ──
+            const Text(
+              'Amount (₱)',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _amountController,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                hintText: 'e.g. 150.00',
+                errorText: _amountError,
+                filled: true,
+                fillColor: Colors.white,
+                prefixIcon: const Icon(Icons.payments_outlined,
+                    color: Colors.indigo),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: Colors.indigo, width: 2),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: Colors.redAccent, width: 2),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: Colors.redAccent, width: 2),
+                ),
+              ),
+              onChanged: (_) {
+                if (_amountError != null) {
+                  setState(() => _amountError = null);
                 }
               },
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _saveExpense(),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 36),
 
-            // Save Button
+            // ── Save Button ──
             ElevatedButton.icon(
               onPressed: _isSaving ? null : _saveExpense,
               icon: _isSaving
@@ -414,9 +624,13 @@ class _AddExpensePageState extends State<AddExpensePage> {
                         color: Colors.white,
                       ),
                     )
-                  : const Icon(Icons.save_alt),
+                  : Icon(_isEditMode ? Icons.update : Icons.save_alt),
               label: Text(
-                _isSaving ? 'Saving...' : 'Save Expense',
+                _isSaving
+                    ? 'Saving...'
+                    : _isEditMode
+                        ? 'Update Expense'
+                        : 'Save Expense',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -436,10 +650,10 @@ class _AddExpensePageState extends State<AddExpensePage> {
 
             const SizedBox(height: 12),
 
-            // Cancel Button
+            // ── Cancel Button ──
             OutlinedButton.icon(
               onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back),
+              icon: const Icon(Icons.close),
               label: const Text(
                 'Cancel',
                 style: TextStyle(fontSize: 16),
@@ -447,7 +661,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 foregroundColor: Colors.indigo,
-                side: const BorderSide(color: Colors.indigo),
+                side: const BorderSide(color: Color.fromARGB(255, 84, 22, 33)),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
